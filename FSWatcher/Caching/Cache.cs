@@ -43,7 +43,6 @@ namespace FSWatcher.Caching
 		}
 
 		public bool IsDirectory(string dir) {
-            applyPatches();
 			return _directories.ContainsKey(dir.GetHashCode());
 		}
 
@@ -54,7 +53,6 @@ namespace FSWatcher.Caching
 			Action<string> fileChanged,
 			Action<string> fileDeleted)
 		{
-			applyPatches();
 			var dirs = new Dictionary<int, string>();
 			var files = new Dictionary<int, File>();
 			getSnapshot(_dir, ref dirs, ref files);
@@ -68,6 +66,7 @@ namespace FSWatcher.Caching
 		
 		public void Patch(Change item) {
 			_patches.Push(item);
+            applyPatches();
 		}
 
 		private void applyPatches()

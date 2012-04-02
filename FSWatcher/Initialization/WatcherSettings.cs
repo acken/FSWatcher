@@ -44,6 +44,11 @@ namespace FSWatcher.Initialization
 
 		public static WatcherSettings GetSettings()
 		{
+			var loopDelay = 0;
+			if (Environment.OSVersion.Platform == PlatformID.Unix ||
+				Environment.OSVersion.Platform == PlatformID.MacOSX)
+				loopDelay = 1000;
+
 			var file2Deleted = false;
 			var file3Created = false;
 			
@@ -55,14 +60,22 @@ namespace FSWatcher.Initialization
 				Path.GetDirectoryName(changeDir),
 				"changedir_" + Path.GetFileNameWithoutExtension(changeDir));
 			Directory.CreateDirectory(changeDir);
-            var cache = new Cache(changeDir);
-            cache.Initialize();
 			var subdir = Path.Combine(changeDir, "subdir");
+			var subdirDelete = Path.Combine(changeDir, "subdirdelete");
 			var dir2 = Path.Combine(changeDir, "subdir1");
 			var dir3 = Path.Combine(changeDir, "subdir2");
 			var file = Path.Combine(subdir, "myfile.txt");
 			var file2 = Path.Combine(changeDir, "MovedFile.txt");
 			var file3 = file2 + ".again";
+			var fileContentChange = Path.Combine(changeDir, "contentToChange.txt");
+			Directory.CreateDirectory(dir2);
+			Directory.CreateDirectory(subdirDelete);
+			File.WriteAllText(fileContentChange, "to be changed");
+			File.WriteAllText(file2, "hey");
+
+			var cache = new Cache(changeDir);
+            cache.Initialize();
+
 			var fsw = new FSW(
 				changeDir,
 				(s) => {
@@ -90,37 +103,30 @@ namespace FSWatcher.Initialization
 				},
 				(s) => {},
                 cache);
-			Directory.CreateDirectory(subdir);
-
 			
-			File.WriteAllText(file, "hey");
-
-			using (var writer = File.AppendText(file)) {
-				writer.Write("moar content");
-			}
-			//Thread.Sleep(10);
-			
-			File.Move(file, file2);
-			//Thread.Sleep(10);
-			
-			File.Move(file2, file3);
-			//Thread.Sleep(10);
-
-			File.Delete(file);
-
-			Directory.Move(subdir, dir2);
-			//Thread.Sleep(10);
-
-			Directory.Move(dir2, dir3);
-			//Thread.Sleep(10);
-
-			Directory.Delete(dir3);
-			//Thread.Sleep(10);
+			var fileChanges = new Thread(() => {
+				Directory.CreateDirectory(subdir);
+				File.WriteAllText(file, "hey");
+				using (var writer = File.AppendText(fileContentChange)) {
+					writer.Write("moar content");
+				}
+				File.Move(file2, file3);
+				File.Delete(file);
+				Directory.Move(dir2, dir3);
+				Directory.Delete(subdirDelete);
+				Thread.Sleep(loopDelay);
+			});
+			fileChanges.Start();
+			fileChanges.Join();
 
 			fsw.Stop();
 			
-			File.Delete(file2);
+			Directory.Delete(dir3);
+			if (Directory.Exists(subdirDelete))
+				Directory.Delete(subdirDelete);
+			File.Delete(fileContentChange);
 			File.Delete(file3);
+			Directory.Delete(subdir);
 			Directory.Delete(changeDir);
 
 			return new WatcherSettings(
