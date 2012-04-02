@@ -7,8 +7,6 @@ The native .Net file system watcher is completely unreliable with
 it's overflow exceptions. FSWatcher solves that and makes sure you
 are notified about all file system changes.
 
-FSWatcher is licensed under the MIT license.
-
 Getting started
 After cloning this repository run deploy.bat if you are on windows
 or deploy.sh if you are on Linux or MacOSX. When deploy is done
@@ -29,3 +27,7 @@ to start listening for file system events:
 	watcher.Watch();
 	....
 	watcher.StopWatching();
+
+
+
+FSWatcher is licensed under the MIT license.
