@@ -44,10 +44,7 @@ namespace FSWatcher.Initialization
 
 		public static WatcherSettings GetSettings()
 		{
-			var loopDelay = 0;
-			if (Environment.OSVersion.Platform == PlatformID.Unix ||
-				Environment.OSVersion.Platform == PlatformID.MacOSX)
-				loopDelay = 3000;
+            var maxWaitTime = 3000;
 
 			var file2Deleted = false;
 			var file3Created = false;
@@ -126,7 +123,7 @@ namespace FSWatcher.Initialization
 				File.Delete(file);
 				Directory.Move(dir2, dir3);
 				Directory.Delete(subdirDelete);
-                while (!fullSupport() && timeSince(startTime) < loopDelay)
+                while (!fullSupport() && timeSince(startTime) < maxWaitTime)
 				    Thread.Sleep(10);
 			});
 			fileChanges.Start();
