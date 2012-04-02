@@ -5,11 +5,32 @@ using FSWatcher.FS;
 
 namespace FSWatcher.Caching
 {
+	enum ChangeType
+	{
+		DirectoryCreated,
+		DirectoryDeleted,
+		FileCreated,
+		FileChanged,
+		FileDeleted
+	}
+
+	class Change
+	{
+		public ChangeType Type { get; private set; }
+		public string Item { get; private set; }
+
+		public Change(ChangeType type, string item)
+		{
+			Type = type;
+			Item = item;
+		}
+	}
 	class Cache
 	{
 		private string _dir;
 		private Dictionary<int, string> _directories = new Dictionary<int, string>();
 		private Dictionary<int, File> _files = new Dictionary<int, File>();
+		private Stack<Change> _patches = new Stack<Change>();
 
 		public Cache(string dir)
 		{
@@ -21,13 +42,18 @@ namespace FSWatcher.Caching
 			getSnapshot(_dir, ref _directories, ref _files);
 		}
 
-		public void GenerateEvents(
+		public bool IsDirectory(string dir) {
+			return _directories.ContainsKey(dir.GetHashCode());
+		}
+
+		public void RefreshFromDisk(
 			Action<string> directoryCreated,
 			Action<string> directoryDeleted,
 			Action<string> fileCreated,
 			Action<string> fileChanged,
 			Action<string> fileDeleted)
 		{
+			applyPatches();
 			var dirs = new Dictionary<int, string>();
 			var files = new Dictionary<int, File>();
 			getSnapshot(_dir, ref dirs, ref files);
@@ -37,6 +63,34 @@ namespace FSWatcher.Caching
 			handleDeleted(_files, files, fileDeleted);
 			handleCreated(_files, files, fileCreated);
 			handleChanged(_files, files, fileChanged);
+		}
+		
+		public void Patch(Change item) {
+			_patches.Push(item);
+		}
+
+		private void applyPatches()
+		{
+			while (_patches.Count > 0) {
+				var item = _patches.Pop();
+				if (item == null)
+					break;
+				if (item.Type == ChangeType.DirectoryCreated)
+					add(item.Item, _directories);
+				if (item.Type == ChangeType.DirectoryDeleted)
+					remove(item.Item.GetHashCode(), _directories);
+				if (item.Type == ChangeType.FileCreated)
+					add(getFile(item.Item), _files);
+				if (item.Type == ChangeType.FileChanged)
+					update(getFile(item.Item), _files);
+				if (item.Type == ChangeType.FileDeleted)
+					remove(getFile(item.Item).GetHashCode(), _files);
+			}
+		}
+
+		private File getFile(string file)
+		{
+			return new File(file, System.IO.Path.GetDirectoryName(file).GetHashCode());
 		}
 
 		private void getSnapshot(
@@ -74,9 +128,7 @@ namespace FSWatcher.Caching
 		{
 			getChanged(original, items)
 				.ForEach(x => {
-					File file;
-					if (original.TryGetValue(x.GetHashCode(), out file))
-						file.SetHash(x.Hash);
+					update(x, original);
 					notify(x.ToString(), action);
 				});
 		}
@@ -101,6 +153,13 @@ namespace FSWatcher.Caching
 		private void remove<T>(int item, Dictionary<int, T> list)
 		{
 			list.Remove(item);
+		}
+
+		private void update(File file, Dictionary<int, File> list)
+		{
+			File originalFile;
+			if (list.TryGetValue(file.GetHashCode(), out originalFile))
+				originalFile.SetHash(file.Hash);
 		}
 		
 		private void notify(string item, Action<string> action)

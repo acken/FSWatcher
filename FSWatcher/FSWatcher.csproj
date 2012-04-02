@@ -37,6 +37,8 @@
     <Compile Include="Watcher.cs" />
     <Compile Include="FS\File.cs" />
     <Compile Include="Caching\Cache.cs" />
+    <Compile Include="EventedWatchers\FSW.cs" />
+    <Compile Include="Initialization\WatcherSettings.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
