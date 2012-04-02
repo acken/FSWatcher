@@ -42,7 +42,7 @@ namespace FSWatcher.Initialization
 			CanDetectFileRename = canDetectFileRename;
 		}
 
-		public static WatcherSettings GetSettings(Cache cache)
+		public static WatcherSettings GetSettings()
 		{
 			var file2Deleted = false;
 			var file3Created = false;
@@ -55,6 +55,8 @@ namespace FSWatcher.Initialization
 				Path.GetDirectoryName(changeDir),
 				"changedir_" + Path.GetFileNameWithoutExtension(changeDir));
 			Directory.CreateDirectory(changeDir);
+            var cache = new Cache(changeDir);
+            cache.Initialize();
 			var subdir = Path.Combine(changeDir, "subdir");
 			var dir2 = Path.Combine(changeDir, "subdir1");
 			var dir3 = Path.Combine(changeDir, "subdir2");
@@ -64,11 +66,13 @@ namespace FSWatcher.Initialization
 			var fsw = new FSW(
 				changeDir,
 				(s) => {
+                    cache.Patch(new Change(ChangeType.DirectoryCreated, s));
 					_canDetectDirectoryCreate = true;
 					if (s == dir3)
 						dir3Created = true;
 				},
 				(s) => {
+                    cache.Patch(new Change(ChangeType.DirectoryDeleted, s));
 					_canDetectDirectoryDelete = true;
 					if (s == dir2)
 						dir2Deleted = true;
@@ -85,7 +89,7 @@ namespace FSWatcher.Initialization
 						file2Deleted = true;
 				},
 				(s) => {},
-				cache);
+                cache);
 			Directory.CreateDirectory(subdir);
 
 			
@@ -94,24 +98,24 @@ namespace FSWatcher.Initialization
 			using (var writer = File.AppendText(file)) {
 				writer.Write("moar content");
 			}
-			Thread.Sleep(500);
+			//Thread.Sleep(10);
 			
 			File.Move(file, file2);
-			Thread.Sleep(500);
+			//Thread.Sleep(10);
 			
 			File.Move(file2, file3);
-			Thread.Sleep(500);
+			//Thread.Sleep(10);
 
 			File.Delete(file);
 
 			Directory.Move(subdir, dir2);
-			Thread.Sleep(500);
+			//Thread.Sleep(10);
 
 			Directory.Move(dir2, dir3);
-			Thread.Sleep(500);
+			//Thread.Sleep(10);
 
 			Directory.Delete(dir3);
-			Thread.Sleep(500);
+			//Thread.Sleep(10);
 
 			fsw.Stop();
 			

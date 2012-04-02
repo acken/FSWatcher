@@ -27,3 +27,7 @@ openlocal.bat
 ~$*
 Debug/
 Release/
+Backup/
+Backup1/
+UpgradeLog*
+_UpgradeReport*

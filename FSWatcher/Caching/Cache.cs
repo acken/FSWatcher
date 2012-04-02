@@ -43,6 +43,7 @@ namespace FSWatcher.Caching
 		}
 
 		public bool IsDirectory(string dir) {
+            applyPatches();
 			return _directories.ContainsKey(dir.GetHashCode());
 		}
 
@@ -147,19 +148,25 @@ namespace FSWatcher.Caching
 
 		private void add<T>(T item, Dictionary<int, T> list)
 		{
-			list.Add(item.GetHashCode(), item);
+            lock (list) {
+			    list.Add(item.GetHashCode(), item);
+            }
 		}
 
 		private void remove<T>(int item, Dictionary<int, T> list)
 		{
-			list.Remove(item);
+            lock (list) {
+			    list.Remove(item);
+            }
 		}
 
 		private void update(File file, Dictionary<int, File> list)
 		{
-			File originalFile;
-			if (list.TryGetValue(file.GetHashCode(), out originalFile))
-				originalFile.SetHash(file.Hash);
+            lock (list) {
+			    File originalFile;
+			    if (list.TryGetValue(file.GetHashCode(), out originalFile))
+				    originalFile.SetHash(file.Hash);
+            }
 		}
 		
 		private void notify(string item, Action<string> action)

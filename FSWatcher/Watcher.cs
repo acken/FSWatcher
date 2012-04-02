@@ -30,7 +30,7 @@ namespace FSWatcher
 		{
 			_dir = dir;
 			_cache = new Cache(_dir);	
-			_settings = WatcherSettings.GetSettings(_cache);
+			_settings = WatcherSettings.GetSettings();
 
 			Console.WriteLine("Detects create directory: " + _settings.CanDetectDirectoryCreate.ToString());
 			Console.WriteLine("Detects delete directory: " + _settings.CanDetectDirectoryDelete.ToString());
@@ -84,7 +84,7 @@ namespace FSWatcher
 					_cache);
 
 				while (!_exit) {
-					poll();
+					//poll();
 					Thread.Sleep(500);
 				}
 				_fsw.Stop();

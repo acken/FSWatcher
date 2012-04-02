@@ -45,7 +45,7 @@ namespace FSWatcher.EventedWatchers
 				_watcher.Changed -= WatcherChangeHandler;
 	            _watcher.Created -= WatcherChangeHandler;
 	            _watcher.Deleted -= WatcherChangeHandler;
-	            _watcher.Renamed -= WatcherChangeHandler;
+	            _watcher.Renamed -= WatcherRenamedHandler;
 	            _watcher.Error -= WatcherErrorHandler;
 			}
 		}
@@ -56,8 +56,13 @@ namespace FSWatcher.EventedWatchers
 			
 			_watcher = new FileSystemWatcher
                            {
-                               NotifyFilter = NotifyFilters.LastWrite |
-							   NotifyFilters.Size | NotifyFilters.Attributes,
+                               NotifyFilter = 
+                                    NotifyFilters.CreationTime |
+                                    NotifyFilters.LastWrite |
+                                    NotifyFilters.DirectoryName |
+                                    NotifyFilters.FileName |
+							        NotifyFilters.Size |
+                                    NotifyFilters.Attributes,
                                IncludeSubdirectories = true
                            };
 			_watcher.Changed += WatcherChangeHandler;
@@ -98,12 +103,13 @@ namespace FSWatcher.EventedWatchers
 
 		private void WatcherRenamedHandler(object sender, RenamedEventArgs e)
 		{
-			if (_cache.IsDirectory(e.FullPath)) {
-				_fileDeleted(e.OldFullPath);
-				_fileCreated(e.FullPath);
+            if (_cache.IsDirectory(e.OldFullPath))
+            {
+                _directoryDeleted(e.OldFullPath);
+                _directoryCreated(e.FullPath);
 			} else {
-				_directoryDeleted(e.OldFullPath);
-				_directoryCreated(e.FullPath);
+                _fileDeleted(e.OldFullPath);
+                _fileCreated(e.FullPath);
 			}
 		}
 		
