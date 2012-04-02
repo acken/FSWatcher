@@ -8,3 +8,24 @@ it's overflow exceptions. FSWatcher solves that and makes sure you
 are notified about all file system changes.
 
 FSWatcher is licensed under the MIT license.
+
+Getting started
+After cloning this repository run deploy.bat if you are on windows
+or deploy.sh if you are on Linux or MacOSX. When deploy is done
+you will find the binary files in the ReleaseBinaries directory.
+FSWatcher.Console.exe is just a command line utility.
+
+Reference FSWatcher.dll in your project and use the following code
+to start listening for file system events:
+
+	var watcher = 
+		new Watcher(
+			watch_directory,
+			(s) => Console.WriteLine("Directory created " + s),
+			(s) => Console.WriteLine("Directory deleted " + s),
+			(s) => Console.WriteLine("File created " + s),
+			(s) => Console.WriteLine("File changed " + s),
+			(s) => Console.WriteLine("File deleted " + s));
+	watcher.Watch();
+	....
+	watcher.StopWatching();
