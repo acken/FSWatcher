@@ -30,7 +30,6 @@ namespace FSWatcher.Caching
 		private string _dir;
 		private Dictionary<int, string> _directories = new Dictionary<int, string>();
 		private Dictionary<int, File> _files = new Dictionary<int, File>();
-		private Stack<Change> _patches = new Stack<Change>();
 
 		public Cache(string dir)
 		{
@@ -64,28 +63,30 @@ namespace FSWatcher.Caching
 			handleChanged(_files, files, fileChanged);
 		}
 		
-		public void Patch(Change item) {
-			_patches.Push(item);
-            applyPatches();
+		public bool Patch(Change item) {
+            return applyPatch(item);
 		}
 
-		private void applyPatches()
+        private bool applyPatch(Change item)
 		{
-			while (_patches.Count > 0) {
-				var item = _patches.Pop();
-				if (item == null)
-					break;
-				if (item.Type == ChangeType.DirectoryCreated)
-					add(item.Item, _directories);
-				if (item.Type == ChangeType.DirectoryDeleted)
-					remove(item.Item.GetHashCode(), _directories);
-				if (item.Type == ChangeType.FileCreated)
-					add(getFile(item.Item), _files);
-				if (item.Type == ChangeType.FileChanged)
-					update(getFile(item.Item), _files);
-				if (item.Type == ChangeType.FileDeleted)
-					remove(getFile(item.Item).GetHashCode(), _files);
-			}
+			if (item == null)
+				return false;
+			if (item.Type == ChangeType.DirectoryCreated) {
+				return add(item.Item, _directories);
+            }
+			if (item.Type == ChangeType.DirectoryDeleted) {
+				return remove(item.Item.GetHashCode(), _directories);
+            }
+			if (item.Type == ChangeType.FileCreated) {
+				return add(getFile(item.Item), _files);
+            }
+			if (item.Type == ChangeType.FileChanged) {
+				return update(getFile(item.Item), _files);
+            }
+			if (item.Type == ChangeType.FileDeleted) {
+				return remove(getFile(item.Item).GetHashCode(), _files);
+            }
+            return false;
 		}
 
 		private File getFile(string file)
@@ -145,27 +146,40 @@ namespace FSWatcher.Caching
 				});
 		}
 
-		private void add<T>(T item, Dictionary<int, T> list)
+		private bool add<T>(T item, Dictionary<int, T> list)
 		{
             lock (list) {
-			    list.Add(item.GetHashCode(), item);
+                var key = item.GetHashCode();
+                if (!list.ContainsKey(key)) {
+			        list.Add(key, item);
+                    return true;
+                }
             }
+            return false;
 		}
 
-		private void remove<T>(int item, Dictionary<int, T> list)
+		private bool remove<T>(int item, Dictionary<int, T> list)
 		{
             lock (list) {
-			    list.Remove(item);
+                if (list.ContainsKey(item))
+                {
+                    list.Remove(item);
+                    return true;
+                }
             }
+            return false;
 		}
 
-		private void update(File file, Dictionary<int, File> list)
+		private bool update(File file, Dictionary<int, File> list)
 		{
             lock (list) {
 			    File originalFile;
-			    if (list.TryGetValue(file.GetHashCode(), out originalFile))
+			    if (list.TryGetValue(file.GetHashCode(), out originalFile)) {
 				    originalFile.SetHash(file.Hash);
+                    return true;
+                }
             }
+            return false;
 		}
 		
 		private void notify(string item, Action<string> action)

@@ -15,7 +15,9 @@ namespace FSWatcher.Console
 					(s) => System.Console.WriteLine("File changed " + s),
 					(s) => System.Console.WriteLine("File deleted " + s));
 			watcher.Watch();
-			System.Console.ReadLine();
+			var command = System.Console.ReadLine();
+            if (command == "refresh")
+                watcher.ForceRefresh();
 			watcher.StopWatching();
 		}
 	}

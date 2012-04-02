@@ -19,6 +19,8 @@ namespace FSWatcher
 		private Action<string> _directoryCreated;
 		private Action<string> _directoryDeleted;
 		private Thread _watcher = null;
+        
+        private DateTime _nextCatchup = DateTime.MinValue;
 
 		public Watcher(
 			string dir,
@@ -32,14 +34,6 @@ namespace FSWatcher
 			_cache = new Cache(_dir);	
 			_settings = WatcherSettings.GetSettings();
 
-			Console.WriteLine("Detects create directory: " + _settings.CanDetectDirectoryCreate.ToString());
-			Console.WriteLine("Detects delete directory: " + _settings.CanDetectDirectoryDelete.ToString());
-			Console.WriteLine("Detects rename directory: " + _settings.CanDetectDirectoryRename.ToString());
-			Console.WriteLine("Detects create file: " + _settings.CanDetectFileCreate.ToString());
-			Console.WriteLine("Detects change file: " + _settings.CanDetectFileChange.ToString());
-			Console.WriteLine("Detects delete file: " + _settings.CanDetectFileDelete.ToString());
-			Console.WriteLine("Detects rename file: " + _settings.CanDetectFileRename.ToString());
-
 			_directoryCreated = directoryCreated;
 			_directoryDeleted = directoryDeleted;
 			_fileCreated = fileCreated;
@@ -47,11 +41,6 @@ namespace FSWatcher
 			_fileDeleted = fileDeleted;
 		}
 
-		// when reciving events do _cache.Patch(file);
-		// patch adds to a queue
-		// no locking required
-		// in that way the cache can update right before doing a manual refresh
-		// or automatically if polling not enabled
 		public void Watch()
 		{
 			_watcher = new Thread(() => {
@@ -59,38 +48,51 @@ namespace FSWatcher
 				_fsw = new FSW(
 					_dir,
 					(dir) => {
-						_cache.Patch(new Change(ChangeType.DirectoryCreated, dir));
-						_directoryCreated(dir);
+						if (_cache.Patch(new Change(ChangeType.DirectoryCreated, dir)))
+						    _directoryCreated(dir);
+                        setNextCatchup();
 					},
 					(dir) => {
-						_cache.Patch(new Change(ChangeType.DirectoryDeleted, dir));
-						_directoryDeleted(dir);
+						if (_cache.Patch(new Change(ChangeType.DirectoryDeleted, dir)))
+						    _directoryDeleted(dir);
+                        setNextCatchup();
 					},
 					(file) => {
-						_cache.Patch(new Change(ChangeType.FileCreated, file));
-						_fileCreated(file);
+						if (_cache.Patch(new Change(ChangeType.FileCreated, file)))
+						    _fileCreated(file);
+                        setNextCatchup();
 					},
 					(file) => {
-						_cache.Patch(new Change(ChangeType.FileChanged, file));
-						_fileChanged(file);
+						if (_cache.Patch(new Change(ChangeType.FileChanged, file)))
+						    _fileChanged(file);
+                        setNextCatchup();
 					},
 					(file) => {
-						_cache.Patch(new Change(ChangeType.FileDeleted, file));
-						_fileDeleted(file);
+						if (_cache.Patch(new Change(ChangeType.FileDeleted, file)))
+						    _fileDeleted(file);
+                        setNextCatchup();
 					},
 					(item) => {
-						poll();
+                        setNextCatchup();
 					},
 					_cache);
 
 				while (!_exit) {
-					//poll();
-					Thread.Sleep(500);
+                    if (weNeedToCatchUp())
+					    poll();
+                    if (_settings.ContinuousPolling)
+                        setNextCatchup();
+					Thread.Sleep(_settings.PollFrequency + 10);
 				}
 				_fsw.Stop();
 			});
 			_watcher.Start();
 		}
+
+        public void ForceRefresh()
+        {
+            poll();
+        }
 
 		public void StopWatching()
 		{
@@ -103,8 +105,15 @@ namespace FSWatcher
 
 		private void initialize()
 		{
+            var startTime = DateTime.Now;
 			_cache.Initialize();
+            _settings.SetPollFrequencyTo(timeSince(startTime) * 4);
 		}
+
+        private int timeSince(DateTime time)
+        {
+            return Convert.ToInt32(DateTime.Now.Subtract(time).TotalMilliseconds);
+        }
 
 		private void poll()
 		{
@@ -114,6 +123,22 @@ namespace FSWatcher
 			_fileCreated,
 			_fileChanged,
 			_fileDeleted);
+            clearCatchup();
 		}
+
+        private bool weNeedToCatchUp()
+        {
+            return _nextCatchup != DateTime.MinValue && DateTime.Now > _nextCatchup;
+        }
+
+        private void clearCatchup()
+        {
+            _nextCatchup = DateTime.MinValue;
+        }
+
+        private void setNextCatchup()
+        {
+            _nextCatchup = DateTime.Now.AddMilliseconds(_settings.PollFrequency);
+        }
 	}
 }

@@ -10,12 +10,23 @@ namespace FSWatcher.Initialization
 	{
 		private static bool _canDetectDirectoryCreate;
 		private static bool _canDetectDirectoryDelete;
-		private static bool _canDetectDirectoryRename;
 		private static bool _canDetectFileCreate;
 		private static bool _canDetectFileChange;
 		private static bool _canDetectFileDelete;
-		private static bool _canDetectFileRename;
 		
+        public bool ContinuousPolling {
+            get {
+                var supportsAll =
+                    CanDetectDirectoryCreate &&
+                    CanDetectDirectoryDelete &&
+                    CanDetectDirectoryRename &&
+                    CanDetectFileCreate &&
+                    CanDetectFileChange &&
+                    CanDetectFileDelete &&
+                    CanDetectFileRename;
+                return !supportsAll;
+            }
+        }
 		public bool CanDetectDirectoryCreate { get; private set; }
 		public bool CanDetectDirectoryDelete { get; private set; }
 		public bool CanDetectDirectoryRename { get; private set; }
@@ -23,6 +34,7 @@ namespace FSWatcher.Initialization
 		public bool CanDetectFileChange { get; private set; }
 		public bool CanDetectFileDelete { get; private set; }
 		public bool CanDetectFileRename { get; private set; }
+        public int PollFrequency { get; private set; }
 
 		public WatcherSettings(
 			bool canDetectDirectoryCreate,
@@ -40,7 +52,14 @@ namespace FSWatcher.Initialization
 			CanDetectFileChange = canDetectFileChange;
 			CanDetectFileDelete = canDetectFileDelete;
 			CanDetectFileRename = canDetectFileRename;
+            PollFrequency = 100;
 		}
+
+        public void SetPollFrequencyTo(int milliseconds)
+        {
+            if (milliseconds > 100)
+                PollFrequency = milliseconds;
+        }
 
 		public static WatcherSettings GetSettings()
 		{
@@ -153,5 +172,5 @@ namespace FSWatcher.Initialization
         {
             return DateTime.Now.Subtract(startTime).TotalMilliseconds;
         }
-	}
+    }
 }
