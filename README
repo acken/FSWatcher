@@ -1,0 +1,10 @@
+A cross platform file system watcher for .Net and Mono
+
+FSWatcher uses various strategies to solve the nightmare that is
+file system events. It uses a variation of native events and
+raw polling determined by what is available.
+The native .Net file system watcher is completely unreliable with
+it's overflow exceptions. FSWatcher solves that and makes sure you
+are notified about all file system changes.
+
+FSWatcher is licensed under the MIT license.
