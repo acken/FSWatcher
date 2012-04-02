@@ -47,7 +47,7 @@ namespace FSWatcher.Initialization
 			var loopDelay = 0;
 			if (Environment.OSVersion.Platform == PlatformID.Unix ||
 				Environment.OSVersion.Platform == PlatformID.MacOSX)
-				loopDelay = 1000;
+				loopDelay = 3000;
 
 			var file2Deleted = false;
 			var file3Created = false;
@@ -75,6 +75,17 @@ namespace FSWatcher.Initialization
 
 			var cache = new Cache(changeDir);
             cache.Initialize();
+
+            Func<bool> fullSupport = () => {
+                return
+                    _canDetectDirectoryCreate &&
+				    _canDetectDirectoryDelete &&
+				    dir2Deleted && dir3Created &&
+				    _canDetectFileCreate &&
+				    _canDetectFileChange &&
+				    _canDetectFileDelete &&
+				    file2Deleted && file3Created;
+            };
 
 			var fsw = new FSW(
 				changeDir,
@@ -105,6 +116,7 @@ namespace FSWatcher.Initialization
                 cache);
 			
 			var fileChanges = new Thread(() => {
+                var startTime = DateTime.Now;
 				Directory.CreateDirectory(subdir);
 				File.WriteAllText(file, "hey");
 				using (var writer = File.AppendText(fileContentChange)) {
@@ -114,7 +126,8 @@ namespace FSWatcher.Initialization
 				File.Delete(file);
 				Directory.Move(dir2, dir3);
 				Directory.Delete(subdirDelete);
-				Thread.Sleep(loopDelay);
+                while (!fullSupport() && timeSince(startTime) < loopDelay)
+				    Thread.Sleep(10);
 			});
 			fileChanges.Start();
 			fileChanges.Join();
@@ -138,5 +151,10 @@ namespace FSWatcher.Initialization
 				_canDetectFileDelete,
 				file2Deleted && file3Created);
 		}
+
+        private static double timeSince(DateTime startTime)
+        {
+            return DateTime.Now.Subtract(startTime).TotalMilliseconds;
+        }
 	}
 }
