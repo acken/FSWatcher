@@ -21,6 +21,6 @@ rm -r $DEPLOYDIR/*
 xbuild FSWatcher.sln /target:rebuild /property:OutDir=$BINARYDIR/;Configuration=Release;
 
 cp $BINARYDIR/FSWatcher.dll $DEPLOYDIR/
-cp $BINARYDIR/FSWatcher.pdb $DEPLOYDIR/
+cp $BINARYDIR/FSWatcher.dll.mdb $DEPLOYDIR/
 cp $BINARYDIR/FSWatcher.Console.exe $DEPLOYDIR/
-cp $BINARYDIR/FSWatcher.Console.pdb $DEPLOYDIR/
+cp $BINARYDIR/FSWatcher.Console.exe.mdb $DEPLOYDIR/
