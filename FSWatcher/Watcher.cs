@@ -117,13 +117,15 @@ namespace FSWatcher
 
 		private void poll()
 		{
-			_cache.RefreshFromDisk(
-			_directoryCreated,
-			_directoryDeleted,
-			_fileCreated,
-			_fileChanged,
-			_fileDeleted);
+			var hasChanges = _cache.RefreshFromDisk(
+			    _directoryCreated,
+			    _directoryDeleted,
+			    _fileCreated,
+			    _fileChanged,
+			    _fileDeleted);
             clearCatchup();
+            if (hasChanges)
+                setNextCatchup();
 		}
 
         private bool weNeedToCatchUp()

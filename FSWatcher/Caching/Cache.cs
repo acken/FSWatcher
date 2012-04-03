@@ -45,7 +45,7 @@ namespace FSWatcher.Caching
 			return _directories.ContainsKey(dir.GetHashCode());
 		}
 
-		public void RefreshFromDisk(
+		public bool RefreshFromDisk(
 			Action<string> directoryCreated,
 			Action<string> directoryDeleted,
 			Action<string> fileCreated,
@@ -56,11 +56,18 @@ namespace FSWatcher.Caching
 			var files = new Dictionary<int, File>();
 			getSnapshot(_dir, ref dirs, ref files);
 			
-			handleDeleted(_directories, dirs, directoryDeleted);
-			handleCreated(_directories, dirs, directoryCreated);
-			handleDeleted(_files, files, fileDeleted);
-			handleCreated(_files, files, fileCreated);
-			handleChanged(_files, files, fileChanged);
+            var hasChanges = false;
+			if (handleDeleted(_directories, dirs, directoryDeleted))
+                hasChanges = true;
+			if (handleCreated(_directories, dirs, directoryCreated))
+                hasChanges = true;
+			if (handleDeleted(_files, files, fileDeleted))
+                hasChanges = true;
+			if (handleCreated(_files, files, fileCreated))
+                hasChanges = true;
+			if (handleChanged(_files, files, fileChanged))
+                hasChanges = true;
+            return hasChanges;
 		}
 		
 		public bool Patch(Change item) {
@@ -110,40 +117,49 @@ namespace FSWatcher.Caching
 			}
 		}
 
-		private void handleCreated<T>(
+		private bool handleCreated<T>(
 			Dictionary<int, T> original,
 			Dictionary<int, T> items,
 			Action<string> action)
 		{
+            var hasChanges = false;
 			getCreated(original, items)
 				.ForEach(x => {
 					add(x, original);
 					notify(x.ToString(), action);
+                    hasChanges = true;
 				});
+            return hasChanges;
 		}
-		
-		private void handleChanged(
+
+        private bool handleChanged(
 			Dictionary<int, File> original,
 			Dictionary<int, File> items,
 			Action<string> action)
 		{
+            var hasChanges = false;
 			getChanged(original, items)
 				.ForEach(x => {
 					update(x, original);
 					notify(x.ToString(), action);
+                    hasChanges = true;
 				});
+            return hasChanges;
 		}
 
-		private void handleDeleted<T>(
+        private bool handleDeleted<T>(
 			Dictionary<int, T> original,
 			Dictionary<int, T> items,
 			Action<string> action)
 		{
+            var hasChanges = false;
 			getDeleted(original, items)
 				.ForEach(x => {
 					remove(x.GetHashCode(), original);
 					notify(x.ToString(), action);
+                    hasChanges = true;
 				});
+            return hasChanges;
 		}
 
 		private bool add<T>(T item, Dictionary<int, T> list)
