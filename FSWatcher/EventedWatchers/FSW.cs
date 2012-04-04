@@ -47,6 +47,7 @@ namespace FSWatcher.EventedWatchers
 	            _watcher.Deleted -= WatcherChangeHandler;
 	            _watcher.Renamed -= WatcherRenamedHandler;
 	            _watcher.Error -= WatcherErrorHandler;
+				_watcher.Dispose();
 			}
 		}
 		

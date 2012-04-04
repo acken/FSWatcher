@@ -27,13 +27,15 @@ namespace FSWatcher.Caching
 	}
 	class Cache
 	{
+		private Func<bool> _abortCheck;
 		private string _dir;
 		private Dictionary<int, string> _directories = new Dictionary<int, string>();
 		private Dictionary<int, File> _files = new Dictionary<int, File>();
 
-		public Cache(string dir)
+		public Cache(string dir, Func<bool> abortCheck)
 		{
 			_dir = dir;
+			_abortCheck = abortCheck;
 		}
 		
 		public void Initialize()
@@ -106,14 +108,18 @@ namespace FSWatcher.Caching
 			ref Dictionary<int, string> dirs,
 			ref Dictionary<int, File> files)
 		{
+			if (_abortCheck())
+				return;
 			foreach (var dir in System.IO.Directory.GetDirectories(directory)) {
 				dirs.Add(dir.GetHashCode(), dir);
 				getSnapshot(dir, ref dirs, ref files);
 			}
 
 			foreach (var filepath in System.IO.Directory.GetFiles(directory)) {
-				var file = new File(filepath, _dir.GetHashCode());
+				var file = getFile(filepath);
 				files.Add(file.GetHashCode(), file);
+				if (_abortCheck())
+					return;
 			}
 		}
 
@@ -125,9 +131,10 @@ namespace FSWatcher.Caching
             var hasChanges = false;
 			getCreated(original, items)
 				.ForEach(x => {
-					add(x, original);
-					notify(x.ToString(), action);
-                    hasChanges = true;
+					if (add(x, original)) {
+						notify(x.ToString(), action);
+						hasChanges = true;
+					}
 				});
             return hasChanges;
 		}
@@ -140,9 +147,10 @@ namespace FSWatcher.Caching
             var hasChanges = false;
 			getChanged(original, items)
 				.ForEach(x => {
-					update(x, original);
-					notify(x.ToString(), action);
-                    hasChanges = true;
+					if (update(x, original)) {
+						notify(x.ToString(), action);
+						hasChanges = true;
+					}
 				});
             return hasChanges;
 		}
@@ -155,9 +163,10 @@ namespace FSWatcher.Caching
             var hasChanges = false;
 			getDeleted(original, items)
 				.ForEach(x => {
-					remove(x.GetHashCode(), original);
-					notify(x.ToString(), action);
-                    hasChanges = true;
+					if (remove(x.GetHashCode(), original)) {
+						notify(x.ToString(), action);
+						hasChanges = true;
+					}
 				});
             return hasChanges;
 		}
@@ -191,8 +200,10 @@ namespace FSWatcher.Caching
             lock (list) {
 			    File originalFile;
 			    if (list.TryGetValue(file.GetHashCode(), out originalFile)) {
-				    originalFile.SetHash(file.Hash);
-                    return true;
+					if (!originalFile.Hash.Equals(file.Hash)) {
+						originalFile.SetHash(file.Hash);
+						return true;
+					}
                 }
             }
             return false;

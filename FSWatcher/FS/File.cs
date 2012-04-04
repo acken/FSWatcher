@@ -4,10 +4,10 @@ namespace FSWatcher.FS
 {
 	class File
 	{
-		private int _hash = -1;
+		private long _hash = -1;
 
 		public string Path { get; private set; }
-		public int Hash {
+		public long Hash {
 			get { 
 				if (_hash == -1)
 					_hash = getContentHash();
@@ -21,7 +21,7 @@ namespace FSWatcher.FS
 			Directory = dir;
 		}
 
-		public void SetHash(int newHash)
+		public void SetHash(long newHash)
 		{
 			_hash = newHash;
 		}
@@ -52,12 +52,19 @@ namespace FSWatcher.FS
 			return Path;
 		}
 
-		private int getContentHash()
+		private long getContentHash()
 		{
 			if (!System.IO.File.Exists(Path))
 				return 0;
 			var info = new System.IO.FileInfo(Path);
-			return info.Length.GetHashCode();
+			// Overflow is fine, just wrap
+            unchecked
+            {
+                long hash = 17;
+                hash = hash * 23 + info.Length;
+                hash = hash * 23 + info.LastWriteTimeUtc.Ticks;
+				return hash;
+            }
 		}
 	}
 }

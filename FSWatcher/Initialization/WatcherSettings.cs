@@ -89,7 +89,7 @@ namespace FSWatcher.Initialization
 			File.WriteAllText(fileContentChange, "to be changed");
 			File.WriteAllText(file2, "hey");
 
-			var cache = new Cache(changeDir);
+			var cache = new Cache(changeDir, () => false);
             cache.Initialize();
 
             Func<bool> fullSupport = () => {

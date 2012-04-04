@@ -6,7 +6,7 @@ using FSWatcher.Initialization;
 
 namespace FSWatcher
 {
-	public class Watcher
+	public class Watcher : IDisposable
 	{
 		private string _dir;
 		private bool _exit = false;
@@ -31,7 +31,7 @@ namespace FSWatcher
 			Action<string> fileDeleted)
 		{
 			_dir = dir;
-			_cache = new Cache(_dir);	
+			_cache = new Cache(_dir, () => _exit);	
 			_settings = WatcherSettings.GetSettings();
 
 			_directoryCreated = directoryCreated;
@@ -80,12 +80,13 @@ namespace FSWatcher
 				while (!_exit) {
                     if (weNeedToCatchUp())
 					    poll();
-                    if (_settings.ContinuousPolling)
+                    if (_settings.ContinuousPolling && !waitingToCatchUp())
                         setNextCatchup();
 					Thread.Sleep(_settings.PollFrequency + 10);
 				}
 				_fsw.Stop();
 			});
+			_watcher.Priority = ThreadPriority.BelowNormal;
 			_watcher.Start();
 		}
 
@@ -101,6 +102,11 @@ namespace FSWatcher
 				return;
 			while (_watcher.IsAlive)
 				Thread.Sleep(10);
+		}
+
+		public void Dispose()
+		{
+			StopWatching();
 		}
 
 		private void initialize()
@@ -132,6 +138,11 @@ namespace FSWatcher
         {
             return _nextCatchup != DateTime.MinValue && DateTime.Now > _nextCatchup;
         }
+
+		private bool waitingToCatchUp()
+		{
+			return _nextCatchup != DateTime.MinValue;
+		}
 
         private void clearCatchup()
         {
