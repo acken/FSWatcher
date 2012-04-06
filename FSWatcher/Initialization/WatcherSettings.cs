@@ -6,60 +6,13 @@ using FSWatcher.EventedWatchers;
 
 namespace FSWatcher.Initialization
 {
-	class WatcherSettings
+	class SettingsReader
 	{
 		private static bool _canDetectDirectoryCreate;
 		private static bool _canDetectDirectoryDelete;
 		private static bool _canDetectFileCreate;
 		private static bool _canDetectFileChange;
 		private static bool _canDetectFileDelete;
-		
-        public bool ContinuousPolling {
-            get {
-                var supportsAll =
-                    CanDetectDirectoryCreate &&
-                    CanDetectDirectoryDelete &&
-                    CanDetectDirectoryRename &&
-                    CanDetectFileCreate &&
-                    CanDetectFileChange &&
-                    CanDetectFileDelete &&
-                    CanDetectFileRename;
-                return !supportsAll;
-            }
-        }
-		public bool CanDetectDirectoryCreate { get; private set; }
-		public bool CanDetectDirectoryDelete { get; private set; }
-		public bool CanDetectDirectoryRename { get; private set; }
-		public bool CanDetectFileCreate { get; private set; }
-		public bool CanDetectFileChange { get; private set; }
-		public bool CanDetectFileDelete { get; private set; }
-		public bool CanDetectFileRename { get; private set; }
-        public int PollFrequency { get; private set; }
-
-		public WatcherSettings(
-			bool canDetectDirectoryCreate,
-			bool canDetectDirectoryDelete,
-			bool canDetectDirectoryRename,
-			bool canDetectFileCreate,
-			bool canDetectFileChange,
-			bool canDetectFileDelete,
-			bool canDetectFileRename)
-		{
-			CanDetectDirectoryCreate = canDetectDirectoryCreate;
-			CanDetectDirectoryDelete = canDetectDirectoryDelete;
-			CanDetectDirectoryRename = canDetectDirectoryRename;
-			CanDetectFileCreate = canDetectFileCreate;
-			CanDetectFileChange = canDetectFileChange;
-			CanDetectFileDelete = canDetectFileDelete;
-			CanDetectFileRename = canDetectFileRename;
-            PollFrequency = 100;
-		}
-
-        public void SetPollFrequencyTo(int milliseconds)
-        {
-            if (milliseconds > 100)
-                PollFrequency = milliseconds;
-        }
 
 		public static WatcherSettings GetSettings()
 		{
@@ -171,6 +124,57 @@ namespace FSWatcher.Initialization
         private static double timeSince(DateTime startTime)
         {
             return DateTime.Now.Subtract(startTime).TotalMilliseconds;
+        }
+	}
+
+	public class WatcherSettings
+	{
+        public bool ContinuousPolling {
+            get {
+                var supportsAll =
+                    CanDetectEventedDirectoryCreate &&
+                    CanDetectEventedDirectoryDelete &&
+                    CanDetectEventedDirectoryRename &&
+                    CanDetectEventedFileCreate &&
+                    CanDetectEventedFileChange &&
+                    CanDetectEventedFileDelete &&
+                    CanDetectEventedFileRename;
+                return !supportsAll;
+            }
+        }
+
+		public bool CanDetectEventedDirectoryCreate { get; private set; }
+		public bool CanDetectEventedDirectoryDelete { get; private set; }
+		public bool CanDetectEventedDirectoryRename { get; private set; }
+		public bool CanDetectEventedFileCreate { get; private set; }
+		public bool CanDetectEventedFileChange { get; private set; }
+		public bool CanDetectEventedFileDelete { get; private set; }
+		public bool CanDetectEventedFileRename { get; private set; }
+        public int PollFrequency { get; private set; }
+
+		public WatcherSettings(
+			bool canDetectDirectoryCreate,
+			bool canDetectDirectoryDelete,
+			bool canDetectDirectoryRename,
+			bool canDetectFileCreate,
+			bool canDetectFileChange,
+			bool canDetectFileDelete,
+			bool canDetectFileRename)
+		{
+			CanDetectEventedDirectoryCreate = canDetectDirectoryCreate;
+			CanDetectEventedDirectoryDelete = canDetectDirectoryDelete;
+			CanDetectEventedDirectoryRename = canDetectDirectoryRename;
+			CanDetectEventedFileCreate = canDetectFileCreate;
+			CanDetectEventedFileChange = canDetectFileChange;
+			CanDetectEventedFileDelete = canDetectFileDelete;
+			CanDetectEventedFileRename = canDetectFileRename;
+            PollFrequency = 100;
+		}
+
+        public void SetPollFrequencyTo(int milliseconds)
+        {
+            if (milliseconds > 100)
+                PollFrequency = milliseconds;
         }
     }
 }

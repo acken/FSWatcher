@@ -22,6 +22,8 @@ namespace FSWatcher
         
         private DateTime _nextCatchup = DateTime.MinValue;
 
+		public WatcherSettings Settings { get { return _settings; } }
+
 		public Watcher(
 			string dir,
 			Action<string> directoryCreated,
@@ -32,7 +34,7 @@ namespace FSWatcher
 		{
 			_dir = dir;
 			_cache = new Cache(_dir, () => _exit);	
-			_settings = WatcherSettings.GetSettings();
+			_settings = SettingsReader.GetSettings();
 
 			_directoryCreated = directoryCreated;
 			_directoryDeleted = directoryDeleted;

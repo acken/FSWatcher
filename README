@@ -28,6 +28,29 @@ to start listening for file system events:
 	....
 	watcher.StopWatching();
 
+Additional features is manually setting the polling frequency. By
+default it is set to 4 times the time it takes to create a file
+system snapshot of the directory that is being watched. There are
+also properties showing watcher strategies:
 
+	var settings = watcher.Settings;
+	// Overriding the polling frequency in milliseconds
+	settings.SetPollFrequencyTo(10000);
+
+	// Chosen strategy
+	// Are we polling continuously
+	settings.ContinuousPolling
+
+	// What events are we provided with automatically
+	// If not provided automatically we rely on polling
+	settings.CanDetectEventedDirectoryCreate
+	settings.CanDetectEventedDirectoryDelete
+	settings.CanDetectEventedDirectoryRename
+	settings.CanDetectEventedFileCreate
+	settings.CanDetectEventedFileChange
+	settings.CanDetectEventedFileDelete
+	settings.CanDetectEventedFileRename
+
+Look at the FSWatcher.Console/Program.cs for a working sample.
 
 FSWatcher is licensed under the MIT license.
