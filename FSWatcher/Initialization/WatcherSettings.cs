@@ -83,6 +83,7 @@ namespace FSWatcher.Initialization
 				},
 				(s) => {},
                 cache);
+			fsw.Start();
 			
 			var fileChanges = new Thread(() => {
                 var startTime = DateTime.Now;

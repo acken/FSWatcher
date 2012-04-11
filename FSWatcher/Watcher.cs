@@ -78,8 +78,14 @@ namespace FSWatcher
                         setNextCatchup();
 					},
 					_cache);
+				_fsw.Start();
 
 				while (!_exit) {
+					if (_fsw.NeedsRestart) {
+						_fsw.Start();
+						setNextCatchup();
+					}
+						
                     if (weNeedToCatchUp())
 					    poll();
                     if (_settings.ContinuousPolling && !waitingToCatchUp())

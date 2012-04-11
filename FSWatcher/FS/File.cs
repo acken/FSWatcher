@@ -54,17 +54,21 @@ namespace FSWatcher.FS
 
 		private long getContentHash()
 		{
-			if (!System.IO.File.Exists(Path))
+			try {
+				if (!System.IO.File.Exists(Path))
+					return 0;
+				var info = new System.IO.FileInfo(Path);
+				// Overflow is fine, just wrap
+				unchecked
+				{
+					long hash = 17;
+					hash = hash * 23 + info.Length;
+					hash = hash * 23 + info.LastWriteTimeUtc.Ticks;
+					return hash;
+				}
+			} catch {
 				return 0;
-			var info = new System.IO.FileInfo(Path);
-			// Overflow is fine, just wrap
-            unchecked
-            {
-                long hash = 17;
-                hash = hash * 23 + info.Length;
-                hash = hash * 23 + info.LastWriteTimeUtc.Ticks;
-				return hash;
-            }
+			}
 		}
 	}
 }

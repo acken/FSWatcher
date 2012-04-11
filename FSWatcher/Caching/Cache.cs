@@ -54,22 +54,29 @@ namespace FSWatcher.Caching
 			Action<string> fileChanged,
 			Action<string> fileDeleted)
 		{
-			var dirs = new Dictionary<int, string>();
-			var files = new Dictionary<int, File>();
-			getSnapshot(_dir, ref dirs, ref files);
-			
-            var hasChanges = false;
-			if (handleDeleted(_directories, dirs, directoryDeleted))
-                hasChanges = true;
-			if (handleCreated(_directories, dirs, directoryCreated))
-                hasChanges = true;
-			if (handleDeleted(_files, files, fileDeleted))
-                hasChanges = true;
-			if (handleCreated(_files, files, fileCreated))
-                hasChanges = true;
-			if (handleChanged(_files, files, fileChanged))
-                hasChanges = true;
-            return hasChanges;
+			while (true)
+			{
+				try {
+					var dirs = new Dictionary<int, string>();
+					var files = new Dictionary<int, File>();
+					getSnapshot(_dir, ref dirs, ref files);
+					
+					var hasChanges = false;
+					if (handleDeleted(_directories, dirs, directoryDeleted))
+						hasChanges = true;
+					if (handleCreated(_directories, dirs, directoryCreated))
+						hasChanges = true;
+					if (handleDeleted(_files, files, fileDeleted))
+						hasChanges = true;
+					if (handleCreated(_files, files, fileCreated))
+						hasChanges = true;
+					if (handleChanged(_files, files, fileChanged))
+						hasChanges = true;
+					return hasChanges;
+				} catch {
+					System.Threading.Thread.Sleep(100);
+				}
+			}
 		}
 		
 		public bool Patch(Change item) {

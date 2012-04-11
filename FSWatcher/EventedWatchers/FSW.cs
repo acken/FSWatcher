@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Collections.Generic;
 using FSWatcher.Caching;
 
@@ -16,6 +17,14 @@ namespace FSWatcher.EventedWatchers
 		private Action<string> _directoryCreated;
 		private Action<string> _directoryDeleted;
 		private Action<string> _onError;
+
+		public bool NeedsRestart { get; private set; }
+		public bool IsAlive { get {
+				if (_watcher != null)
+					return _watcher.EnableRaisingEvents;
+				return false;
+			}
+		}
 		
 		public FSW(
 			string watchPath,
@@ -35,6 +44,9 @@ namespace FSWatcher.EventedWatchers
 			_fileDeleted = fileDeleted;
 			_onError = onError;
 			_cache = cache;
+		}
+
+		public void Start() {
 			startListener();
 		}
 
@@ -42,6 +54,7 @@ namespace FSWatcher.EventedWatchers
 		{
 			if (_watcher != null)
 			{
+				_watcher.EnableRaisingEvents = false;
 				_watcher.Changed -= WatcherChangeHandler;
 	            _watcher.Created -= WatcherChangeHandler;
 	            _watcher.Deleted -= WatcherChangeHandler;
@@ -55,6 +68,7 @@ namespace FSWatcher.EventedWatchers
 		{
 			Stop();
 			
+			Thread.Sleep(500);
 			_watcher = new FileSystemWatcher
                            {
                                NotifyFilter = 
@@ -73,44 +87,53 @@ namespace FSWatcher.EventedWatchers
             _watcher.Error += WatcherErrorHandler;
 			_watcher.Path = _watchPath;
 			_watcher.EnableRaisingEvents = true;
+			NeedsRestart = false;
 		}
 		
 		private void WatcherChangeHandler(object sender, FileSystemEventArgs e)
         {
-			if (e.ChangeType == WatcherChangeTypes.Created) {
-				if (Directory.Exists(e.FullPath)) {
-					_directoryCreated(e.FullPath);
-					if (Environment.OSVersion.Platform == PlatformID.Unix ||
-						Environment.OSVersion.Platform == PlatformID.MacOSX) {
-						startListener();
-					}
-				} else
-					_fileCreated(e.FullPath);
-				return;
-			}
+			try {
+				if (e.ChangeType == WatcherChangeTypes.Created) {
+					if (Directory.Exists(e.FullPath)) {
+						_directoryCreated(e.FullPath);
+						if (Environment.OSVersion.Platform == PlatformID.Unix ||
+							Environment.OSVersion.Platform == PlatformID.MacOSX) {
+							NeedsRestart = true;
+						}
+					} else
+						_fileCreated(e.FullPath);
+					return;
+				}
 
-			if (e.ChangeType == WatcherChangeTypes.Changed) {
-				_fileChanged(e.FullPath);
-				return;
-			}
+				if (e.ChangeType == WatcherChangeTypes.Changed) {
+					_fileChanged(e.FullPath);
+					return;
+				}
 
-			if (e.ChangeType == WatcherChangeTypes.Deleted) {
-				if (_cache.IsDirectory(e.FullPath))
-					_directoryDeleted(e.FullPath);
-				else
-					_fileDeleted(e.FullPath);
+				if (e.ChangeType == WatcherChangeTypes.Deleted) {
+					if (_cache.IsDirectory(e.FullPath))
+						_directoryDeleted(e.FullPath);
+					else
+						_fileDeleted(e.FullPath);
+				}
+			} catch (Exception ex) {
+				_onError(ex.ToString());
 			}
         }
 
 		private void WatcherRenamedHandler(object sender, RenamedEventArgs e)
 		{
-            if (_cache.IsDirectory(e.OldFullPath))
-            {
-                _directoryDeleted(e.OldFullPath);
-                _directoryCreated(e.FullPath);
-			} else {
-                _fileDeleted(e.OldFullPath);
-                _fileCreated(e.FullPath);
+			try {
+				if (_cache.IsDirectory(e.OldFullPath))
+				{
+					_directoryDeleted(e.OldFullPath);
+					_directoryCreated(e.FullPath);
+				} else {
+					_fileDeleted(e.OldFullPath);
+					_fileCreated(e.FullPath);
+				}
+			} catch (Exception ex) {
+				_onError(ex.ToString());
 			}
 		}
 		
