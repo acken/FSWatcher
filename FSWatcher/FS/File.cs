@@ -1,29 +1,20 @@
-using System;
-
 namespace FSWatcher.FS
 {
 	class File
 	{
-		private long _hash = -1;
-
 		public string Path { get; private set; }
-		public long Hash {
-			get { 
-				if (_hash == -1)
-					_hash = getContentHash();
-				return _hash;
-			} 
-		}
+		public long Hash { get; private set; }		
 		public int Directory { get; private set; }
 
 		public File(string file, int dir) {
 			Path = file;
 			Directory = dir;
+		    Hash = getContentHash();
 		}
 
 		public void SetHash(long newHash)
 		{
-			_hash = newHash;
+			Hash = newHash;
 		}
 		
 		public override bool Equals(object obj)
