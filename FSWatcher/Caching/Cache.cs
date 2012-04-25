@@ -30,8 +30,8 @@ namespace FSWatcher.Caching
 		private Func<bool> _abortCheck;
 		private string _dir;
 		private Action<string, Exception> _onError = null;
-		private Dictionary<int, string> _directories = new Dictionary<int, string>();
-		private Dictionary<int, File> _files = new Dictionary<int, File>();
+		private Dictionary<string, string> _directories = new Dictionary<string, string>();
+		private Dictionary<string, File> _files = new Dictionary<string, File>();
 
 		public Cache(string dir, Func<bool> abortCheck)
 		{
@@ -45,7 +45,7 @@ namespace FSWatcher.Caching
 		}
 
 		public bool IsDirectory(string dir) {
-			return _directories.ContainsKey(dir.GetHashCode());
+			return _directories.ContainsKey(dir.ToString());
 		}
 		
 		public void ErrorNotifier(Action<string, Exception> notifier)
@@ -63,8 +63,8 @@ namespace FSWatcher.Caching
 			while (true)
 			{
 				try {
-					var dirs = new Dictionary<int, string>();
-					var files = new Dictionary<int, File>();
+					var dirs = new Dictionary<string, string>();
+					var files = new Dictionary<string, File>();
 					getSnapshot(_dir, ref dirs, ref files);
 					
 					var hasChanges = false;
@@ -78,7 +78,6 @@ namespace FSWatcher.Caching
 						hasChanges = true;
 					if (handleChanged(_files, files, fileChanged))
 						hasChanges = true;
-					Console.WriteLine("Done!");
 					return hasChanges;
 				} catch (Exception ex) {
 					if (_onError != null)
@@ -100,7 +99,7 @@ namespace FSWatcher.Caching
 				return add(item.Item, _directories);
             }
 			if (item.Type == ChangeType.DirectoryDeleted) {
-				return remove(item.Item.GetHashCode(), _directories);
+				return remove(item.Item.ToString(), _directories);
             }
 			if (item.Type == ChangeType.FileCreated) {
 				return add(getFile(item.Item), _files);
@@ -109,7 +108,7 @@ namespace FSWatcher.Caching
 				return update(getFile(item.Item), _files);
             }
 			if (item.Type == ChangeType.FileDeleted) {
-				return remove(getFile(item.Item).GetHashCode(), _files);
+				return remove(getFile(item.Item).ToString(), _files);
             }
             return false;
 		}
@@ -121,21 +120,21 @@ namespace FSWatcher.Caching
 
 		private void getSnapshot(
 			string directory,
-			ref Dictionary<int, string> dirs,
-			ref Dictionary<int, File> files)
+			ref Dictionary<string, string> dirs,
+			ref Dictionary<string, File> files)
 		{
 			if (_abortCheck())
 				return;
 			try {
 				foreach (var dir in System.IO.Directory.GetDirectories(directory)) {
-					dirs.Add(dir.GetHashCode(), dir);
+					dirs.Add(dir.ToString(), dir);
 					getSnapshot(dir, ref dirs, ref files);
 				}
 
 				foreach (var filepath in System.IO.Directory.GetFiles(directory)) {
 					var file = getFile(filepath);
 					try {
-						files.Add(file.GetHashCode(), file);
+						files.Add(file.ToString(), file);
 					} catch (Exception ex) {
 						if (_onError != null)
 							_onError(filepath, ex);
@@ -150,8 +149,8 @@ namespace FSWatcher.Caching
 		}
 
 		private bool handleCreated<T>(
-			Dictionary<int, T> original,
-			Dictionary<int, T> items,
+			Dictionary<string, T> original,
+			Dictionary<string, T> items,
 			Action<string> action)
 		{
             var hasChanges = false;
@@ -166,8 +165,8 @@ namespace FSWatcher.Caching
 		}
 
         private bool handleChanged(
-			Dictionary<int, File> original,
-			Dictionary<int, File> items,
+			Dictionary<string, File> original,
+			Dictionary<string, File> items,
 			Action<string> action)
 		{
             var hasChanges = false;
@@ -182,14 +181,14 @@ namespace FSWatcher.Caching
 		}
 
         private bool handleDeleted<T>(
-			Dictionary<int, T> original,
-			Dictionary<int, T> items,
+			Dictionary<string, T> original,
+			Dictionary<string, T> items,
 			Action<string> action)
 		{
             var hasChanges = false;
 			getDeleted(original, items)
 				.ForEach(x => {
-					if (remove(x.GetHashCode(), original)) {
+					if (remove(x.ToString(), original)) {
 						notify(x.ToString(), action);
 						hasChanges = true;
 					}
@@ -197,10 +196,10 @@ namespace FSWatcher.Caching
             return hasChanges;
 		}
 
-		private bool add<T>(T item, Dictionary<int, T> list)
+		private bool add<T>(T item, Dictionary<string, T> list)
 		{
             lock (list) {
-                var key = item.GetHashCode();
+                var key = item.ToString();
                 if (!list.ContainsKey(key)) {
 			        list.Add(key, item);
                     return true;
@@ -209,7 +208,7 @@ namespace FSWatcher.Caching
             return false;
 		}
 
-		private bool remove<T>(int item, Dictionary<int, T> list)
+		private bool remove<T>(string item, Dictionary<string, T> list)
 		{
             lock (list) {
                 if (list.ContainsKey(item))
@@ -221,11 +220,11 @@ namespace FSWatcher.Caching
             return false;
 		}
 
-		private bool update(File file, Dictionary<int, File> list)
+		private bool update(File file, Dictionary<string, File> list)
 		{
             lock (list) {
 			    File originalFile;
-			    if (list.TryGetValue(file.GetHashCode(), out originalFile)) {
+			    if (list.TryGetValue(file.Path, out originalFile)) {
 					if (!originalFile.Hash.Equals(file.Hash)) {
 						originalFile.SetHash(file.Hash);
 						return true;
@@ -242,8 +241,8 @@ namespace FSWatcher.Caching
 		}
 
 		private List<T> getCreated<T>(
-			Dictionary<int, T> original,
-			Dictionary<int, T> items)
+			Dictionary<string, T> original,
+			Dictionary<string, T> items)
 		{
 			var added = new List<T>();
 			foreach (var item in items)
@@ -253,8 +252,8 @@ namespace FSWatcher.Caching
 		}
 
 		private List<File> getChanged(
-			Dictionary<int, File> original,
-			Dictionary<int, File> items)
+			Dictionary<string, File> original,
+			Dictionary<string, File> items)
 		{
 			var changed = new List<File>();
 			foreach (var item in items)
@@ -270,8 +269,8 @@ namespace FSWatcher.Caching
 		}
 		
 		private List<T> getDeleted<T>(
-			Dictionary<int, T> original,
-			Dictionary<int, T> items)
+			Dictionary<string, T> original,
+			Dictionary<string, T> items)
 		{
 			var deleted = new List<T>();
 			foreach (var item in original)

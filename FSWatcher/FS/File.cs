@@ -19,23 +19,9 @@ namespace FSWatcher.FS
 		
 		public override bool Equals(object obj)
         {
-            return GetHashCode().Equals(obj.GetHashCode());
-        }
-
-        private int _hashCode = 0;
-        public override int GetHashCode()
-        {
-            if (_hashCode != 0) return _hashCode;
-            // Overflow is fine, just wrap
-            unchecked
-            {
-                int hash = 17;
-                hash = hash * 257 + (Path == null ? 0 : Path.GetHashCode());
-                hash = hash * 263 + Directory;
-				hash = hash + Path.Length;
-                _hashCode = hash;
-                return _hashCode;
-            }
+			if (obj.GetType() == typeof(File))
+	            return Path.Equals(((File)obj).Path);
+			return false;
         }
 
 		public override string ToString()
