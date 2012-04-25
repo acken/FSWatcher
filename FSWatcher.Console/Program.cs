@@ -14,6 +14,7 @@ namespace FSWatcher.Console
 					(s) => System.Console.WriteLine("File created " + s),
 					(s) => System.Console.WriteLine("File changed " + s),
 					(s) => System.Console.WriteLine("File deleted " + s));
+			watcher.ErrorNotifier((path, ex) => { System.Console.WriteLine("{0}\n{1}", path, ex); });
 
 			// Print strategy
 			System.Console.WriteLine(

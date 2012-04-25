@@ -30,8 +30,8 @@ namespace FSWatcher.FS
             unchecked
             {
                 int hash = 17;
-                hash = hash * 23 + (Path == null ? 0 : Path.GetHashCode());
-                hash = hash * 23 + Directory;
+                hash = hash * 257 + (Path == null ? 0 : Path.GetHashCode());
+                hash = hash * 263 + Directory;
 				hash = hash + Path.Length;
                 _hashCode = hash;
                 return _hashCode;

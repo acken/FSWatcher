@@ -18,6 +18,7 @@ namespace FSWatcher
 		private Action<string> _fileDeleted;
 		private Action<string> _directoryCreated;
 		private Action<string> _directoryDeleted;
+		private Action<string, Exception> _onError = null;
 		private Thread _watcher = null;
         
         private DateTime _nextCatchup = DateTime.MinValue;
@@ -110,6 +111,12 @@ namespace FSWatcher
 				return;
 			while (_watcher.IsAlive)
 				Thread.Sleep(10);
+		}
+
+		public void ErrorNotifier(Action<string, Exception> notifier)
+		{
+			_onError = notifier;
+			_cache.ErrorNotifier(notifier);
 		}
 
 		public void Dispose()

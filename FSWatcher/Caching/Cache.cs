@@ -29,6 +29,7 @@ namespace FSWatcher.Caching
 	{
 		private Func<bool> _abortCheck;
 		private string _dir;
+		private Action<string, Exception> _onError = null;
 		private Dictionary<int, string> _directories = new Dictionary<int, string>();
 		private Dictionary<int, File> _files = new Dictionary<int, File>();
 
@@ -45,6 +46,11 @@ namespace FSWatcher.Caching
 
 		public bool IsDirectory(string dir) {
 			return _directories.ContainsKey(dir.GetHashCode());
+		}
+		
+		public void ErrorNotifier(Action<string, Exception> notifier)
+		{
+			_onError = notifier;
 		}
 
 		public bool RefreshFromDisk(
@@ -72,8 +78,11 @@ namespace FSWatcher.Caching
 						hasChanges = true;
 					if (handleChanged(_files, files, fileChanged))
 						hasChanges = true;
+					Console.WriteLine("Done!");
 					return hasChanges;
-				} catch {
+				} catch (Exception ex) {
+					if (_onError != null)
+						_onError(_dir, ex);
 					System.Threading.Thread.Sleep(100);
 				}
 			}
@@ -117,16 +126,26 @@ namespace FSWatcher.Caching
 		{
 			if (_abortCheck())
 				return;
-			foreach (var dir in System.IO.Directory.GetDirectories(directory)) {
-				dirs.Add(dir.GetHashCode(), dir);
-				getSnapshot(dir, ref dirs, ref files);
-			}
+			try {
+				foreach (var dir in System.IO.Directory.GetDirectories(directory)) {
+					dirs.Add(dir.GetHashCode(), dir);
+					getSnapshot(dir, ref dirs, ref files);
+				}
 
-			foreach (var filepath in System.IO.Directory.GetFiles(directory)) {
-				var file = getFile(filepath);
-				files.Add(file.GetHashCode(), file);
-				if (_abortCheck())
-					return;
+				foreach (var filepath in System.IO.Directory.GetFiles(directory)) {
+					var file = getFile(filepath);
+					try {
+						files.Add(file.GetHashCode(), file);
+					} catch (Exception ex) {
+						if (_onError != null)
+							_onError(filepath, ex);
+					}
+					if (_abortCheck())
+						return;
+				}
+			} catch (Exception ex) {
+				if (_onError != null)
+					_onError(directory, ex);
 			}
 		}
 
