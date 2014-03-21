@@ -31,3 +31,7 @@ Backup/
 Backup1/
 UpgradeLog*
 _UpgradeReport*
+active-profile
+oi-definitions.json
+*.sublime-project
+*.sublime-workspace

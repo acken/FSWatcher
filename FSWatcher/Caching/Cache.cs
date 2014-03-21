@@ -127,14 +127,16 @@ namespace FSWatcher.Caching
 				return;
 			try {
 				foreach (var dir in System.IO.Directory.GetDirectories(directory)) {
-					dirs.Add(dir.ToString(), dir);
+					if (!dirs.ContainsKey(dir.ToString()))
+						dirs.Add(dir.ToString(), dir);
 					getSnapshot(dir, ref dirs, ref files);
 				}
 
 				foreach (var filepath in System.IO.Directory.GetFiles(directory)) {
 					var file = getFile(filepath);
 					try {
-						files.Add(file.ToString(), file);
+						if (!files.ContainsKey(file.ToString()))
+							files.Add(file.ToString(), file);
 					} catch (Exception ex) {
 						if (_onError != null)
 							_onError(filepath, ex);
