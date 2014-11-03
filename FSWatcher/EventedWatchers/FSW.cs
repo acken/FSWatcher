@@ -54,13 +54,17 @@ namespace FSWatcher.EventedWatchers
 		{
 			if (_watcher != null)
 			{
-				_watcher.EnableRaisingEvents = false;
-				_watcher.Changed -= WatcherChangeHandler;
-	            _watcher.Created -= WatcherChangeHandler;
-	            _watcher.Deleted -= WatcherChangeHandler;
-	            _watcher.Renamed -= WatcherRenamedHandler;
-	            _watcher.Error -= WatcherErrorHandler;
-				_watcher.Dispose();
+				try {
+					_watcher.EnableRaisingEvents = false;
+					_watcher.Changed -= WatcherChangeHandler;
+		            _watcher.Created -= WatcherChangeHandler;
+		            _watcher.Deleted -= WatcherChangeHandler;
+		            _watcher.Renamed -= WatcherRenamedHandler;
+		            _watcher.Error -= WatcherErrorHandler;
+					_watcher.Dispose();
+				} catch {
+					// Cleanup failed, forget about it..
+				}
 			}
 		}
 		
